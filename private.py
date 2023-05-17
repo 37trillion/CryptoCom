@@ -2,9 +2,8 @@ import ccxt
 
 # Create an instance of the Crypto.com exchange
 exchange = ccxt.cryptocom({
-    'apiKey': ,
-    'secret': 
-    'password': 'YOUR_API_PASSWORD',
+    'apiKey': 'YOUR API KEY HERE',
+    'secret': 'YOUR API KEY HERE'
     # Additional exchange-specific options if needed
 })
 
