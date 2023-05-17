@@ -4,7 +4,9 @@ import ccxt
 
 # Create an instance of the Crypto.com exchange
 exchange = ccxt.cryptocom({
-
+    'apiKey': "YOUR API KEY HERE",
+    'secret': "YOUR SECRET KEY HERE"
+    #you can get your API keys in settings on the crypto.com/exchange click create API key and enable the trading button!
     # Additional exchange-specific options if needed
 })
 
