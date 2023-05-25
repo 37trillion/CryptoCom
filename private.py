@@ -2,8 +2,9 @@ import ccxt
 
 # Create an instance of the Crypto.com exchange
 exchange = ccxt.cryptocom({
-    'apiKey': 'YOUR API KEY HERE',
-    'secret': 'YOUR API KEY HERE'
+    'apiKey': 'Your ApiKey',
+    'secret': 'Your Secret ApiKey',
+    'password': 'YOUR_API_PASSWORD',
     # Additional exchange-specific options if needed
 })
 
@@ -39,5 +40,25 @@ def fetch_trading_fees():
     trading_fees = exchange.fetch_trading_fees()
     return trading_fees
 
-# Add more private methods as needed
+# Additional functions
+
+def fetch_my_trades(symbol=None, since=None, limit=None):
+    my_trades = exchange.fetch_my_trades(symbol, since, limit)
+    return my_trades
+
+def fetch_deposit_address(currency):
+    deposit_address = exchange.fetch_deposit_address(currency)
+    return deposit_address
+
+def create_withdrawal(currency, amount, address, options=None):
+    withdrawal = exchange.create_withdrawal(currency, amount, address, options)
+    return withdrawal
+
+def fetch_withdrawals(currency=None, since=None, limit=None, status=None):
+    withdrawals = exchange.fetch_withdrawals(currency, since, limit, status)
+    return withdrawals
+
+def fetch_deposits(currency=None, since=None, limit=None, status=None):
+    deposits = exchange.fetch_deposits(currency, since, limit, status)
+    return deposits
 
