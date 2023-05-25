@@ -11,8 +11,8 @@ logger = logging.getLogger(__name__)
 
 # Create an instance of the Crypto.com exchange
 exchange = ccxt.cryptocom({
-    'apiKey': 'Your Api Key',
-    'secret': 'Your Secret ApiKey',
+    'apiKey': 'YOUR_API_KEY',
+    'secret': 'YOUR_SECRET_KEY',
     'password': 'YOUR_API_PASSWORD',
     # Additional exchange-specific options if needed
 })
@@ -73,7 +73,13 @@ def execute_trade():
             # Check buy condition based on candlestick market data
             if current_candle[1] > previous_candle[4]:  # If current candle opens higher than the previous candle's close
                 # Generate random amounts for buy and sell
-                buy_amount = random.uniform(0.00001, 100000.1)  # Random amount between 0.00001 and 100000.1
+                # Generate random amounts for buy and sell
+                buy_amount = int(random.uniform(1, 100000))  # Random amount between 1 and 100,000 as an integer
+
+# Place a market buy order with the random buy amount
+                buy_order = exchange.create_market_buy_order(symbol, buy_amount)
+                logger.info(f"Buy order placed for {symbol} at market price: {buy_order}")
+  # Random amount between 0.00001 and 100000.1
                 sell_amount_1 = random.uniform(0.00001, 100000.1)
                 sell_amount_2 = random.uniform(0.00001, 100000.1)
 
@@ -122,6 +128,28 @@ def execute_trade():
 
         time.sleep(1)
 
+# Buy instantly on bot start
+for symbol in exchange.symbols:
+    try:
+        ticker = exchange.fetch_ticker(symbol)
+        current_price = ticker['close']
+        buy_order = exchange.create_market_buy_order(symbol, 1)  # Buy 1 unit at market price
+        logger.info(f"Instant buy order placed for {symbol} at market price: {buy_order}")
+
+    except ccxt.InsufficientFunds as e:
+        logger.info(f"Insufficient funds for {symbol}. Skipping to the next trading pair.")
+
+    except ccxt.BaseError as e:
+        if "symbol" in str(e).lower():
+            logger.info(f"Invalid symbol ({symbol}). Skipping to the next trading pair.")
+        else:
+            logger.info(f"An error occurred for {symbol}. Skipping to the next trading pair.")
+
+    except Exception as e:
+        logger.info(f"An error occurred: {str(e)}")
+
+    time.sleep(1)
+
 # Run the execute_trade() function indefinitely
 while True:
     try:
@@ -129,5 +157,5 @@ while True:
     except Exception as e:
         logger.info(f"An error occurred: {str(e)}")
 
-    time.sleep(300)  # 5 minutes interval
+    time.sleep(30)  # 5 minutes interval
 
