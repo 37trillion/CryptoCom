@@ -1,17 +1,48 @@
 import random
 import time
 import ccxt
+import logging
+import talib
+import numpy as np
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 # Create an instance of the Crypto.com exchange
 exchange = ccxt.cryptocom({
-    'apiKey': "YOUR API KEY HERE",
-    'secret': "YOUR SECRET KEY HERE"
-    #you can get your API keys in settings on the crypto.com/exchange click create API key and enable the trading button!
+    'apiKey': 'Your Api Key',
+    'secret': 'Your Secret ApiKey',
+    'password': 'YOUR_API_PASSWORD',
     # Additional exchange-specific options if needed
 })
 
-# Dictionary to store trailing stop loss values for each symbol
-trailing_stop_loss = {}
+
+def calculate_sma(symbol, timeframe, period):
+    # Get the OHLCV data for the specified symbol and timeframe
+    ohlcv = exchange.fetch_ohlcv(symbol, timeframe, limit=period)
+
+    # Extract the closing prices from the OHLCV data
+    close_prices = [candle[4] for candle in ohlcv]
+
+    # Calculate the simple moving average (SMA) for the closing prices
+    sma = sum(close_prices) / len(close_prices)
+
+    return sma
+
+
+def calculate_rsi(symbol, timeframe, period):
+    # Get the OHLCV data for the specified symbol and timeframe
+    ohlcv = exchange.fetch_ohlcv(symbol, timeframe, limit=period)
+
+    # Extract the closing prices from the OHLCV data
+    close_prices = np.array([candle[4] for candle in ohlcv])
+
+    # Calculate the RSI using the closing prices
+    rsi = talib.RSI(close_prices, timeperiod=period)
+
+    return rsi[-1]  # Get the latest RSI value
+
 
 def execute_trade():
     # Get the list of available trading pairs
@@ -21,44 +52,74 @@ def execute_trade():
         try:
             # Get the latest ticker data
             ticker = exchange.fetch_ticker(symbol)
+            logger.info(f"Ticker data for {symbol}: {ticker}")
 
-            # Calculate buy price and set the buy amount
-            buy_price = ticker['close'] * 0.9972  # 0.45% below market price
-            buy_amount = random.uniform(0.0000250, 1000)  # Random amount between 0.0000250 and 100000
+            current_price = ticker['close']
+            buy_price = current_price
 
-            # Place a market buy order
-            buy_order = exchange.create_limit_buy_order(symbol, buy_amount, buy_price)
-            print(f"Buy order placed for {symbol} at {buy_price}: {buy_order}")
+            # Calculate sell prices
+            sell_price_1 = buy_price * 1.01  # 1% higher than buy price
+            sell_price_2 = buy_price * 1.011  # 1.1% higher than buy price
 
-            # Update trailing stop loss value for the symbol
-            trailing_stop_loss[symbol] = buy_price * 0.995  # 0.50% below buy value
+            # Calculate stop loss and take profit prices
+            stop_loss_price = buy_price * 0.9991  # 0.09% lower than buy price
+            take_profit_price = buy_price * 1.013  # 1.3% higher than buy price
 
-            # Place a sell order when the price is 0.99% higher than the buy price
-            if ticker['close'] >= buy_price * 1.0099:
-                sell_order = exchange.create_market_sell_order(symbol, buy_amount)
-                print(f"Sell order placed for {symbol} at market price: {sell_order}")
+            # Check candlestick market data
+            candle_data = exchange.fetch_ohlcv(symbol, '1m', limit=2)  # Fetch last 2 candles
+            current_candle = candle_data[-1]
+            previous_candle = candle_data[-2]
 
-            # Check if the price is higher than the trailing stop loss value
-            if ticker['close'] > trailing_stop_loss[symbol]:
-                # Update the trailing stop loss value
-                trailing_stop_loss[symbol] = ticker['close'] * 0.995  # 0.50% below the current price
+            # Check buy condition based on candlestick market data
+            if current_candle[1] > previous_candle[4]:  # If current candle opens higher than the previous candle's close
+                # Generate random amounts for buy and sell
+                buy_amount = random.uniform(0.00001, 100000.1)  # Random amount between 0.00001 and 100000.1
+                sell_amount_1 = random.uniform(0.00001, 100000.1)
+                sell_amount_2 = random.uniform(0.00001, 100000.1)
 
-                # Place a sell order at the updated trailing stop loss value
-                sell_order = exchange.create_limit_sell_order(symbol, buy_amount, trailing_stop_loss[symbol])
-                print(f"Trailing stop loss order placed for {symbol} at {trailing_stop_loss[symbol]}: {sell_order}")
+                # Place a market buy order with the random buy amount
+                buy_order = exchange.create_market_buy_order(symbol, buy_amount)
+                logger.info(f"Buy order placed for {symbol} at market price: {buy_order}")
 
-            # Check if there's insufficient balance for the symbol
+                # Place sell orders at specified prices with random sell amounts
+                sell_order_1 = exchange.create_limit_sell_order(symbol, sell_amount_1, sell_price_1)
+                logger.info(f"Sell order placed for {symbol} at price: {sell_price_1}")
+                sell_order_2 = exchange.create_limit_sell_order(symbol, sell_amount_2, sell_price_2)
+                logger.info(f"Sell order placed for {symbol} at price: {sell_price_2}")
+
+                # Set stop loss and take profit prices
+                exchange.create_order(
+                    symbol,
+                    'stop',
+                    'sell',
+                    sell_amount_1,
+                    stopPrice=stop_loss_price,
+                    price=buy_price,
+                    params={'stopLoss': True}
+                )
+                logger.info(f"Stop loss order placed for {symbol} at price: {stop_loss_price}")
+                exchange.create_order(
+                    symbol,
+                    'limit',
+                    'sell',
+                    sell_amount_2,
+                    price=take_profit_price,
+                    params={'takeProfit': True}
+                )
+                logger.info(f"Take profit order placed for {symbol} at price: {take_profit_price}")
+
         except ccxt.InsufficientFunds as e:
-            print(f"Insufficient funds for {symbol}. Skipping to the next trading pair.")
+            logger.info(f"Insufficient funds for {symbol}. Skipping to the next trading pair.")
 
-        # Handle invalid symbols or other exchange-related errors
         except ccxt.BaseError as e:
             if "symbol" in str(e).lower():
-                print(f"Invalid symbol ({symbol}). Skipping to the next trading pair.")
+                logger.info(f"Invalid symbol ({symbol}). Skipping to the next trading pair.")
             else:
-                print(f"An error occurred for {symbol}. Skipping to the next trading pair.")
+                logger.info(f"An error occurred for {symbol}. Skipping to the next trading pair.")
 
-        # Wait for a short interval before processing the next trading pair
+        except Exception as e:
+            logger.info(f"An error occurred: {str(e)}")
+
         time.sleep(1)
 
 # Run the execute_trade() function indefinitely
@@ -66,7 +127,7 @@ while True:
     try:
         execute_trade()
     except Exception as e:
-        print(f"An error occurred: {str(e)}")
+        logger.info(f"An error occurred: {str(e)}")
 
-    # Wait for a certain interval before executing the trades again
-    time.sleep(60)  # Update the interval as per your requirement
+    time.sleep(300)  # 5 minutes interval
+
