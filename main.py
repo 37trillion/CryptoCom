@@ -3,14 +3,15 @@ import ccxt
 import logging
 import talib
 import numpy as np
+import random
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Create an instance of the Crypto.com exchange
 exchange = ccxt.cryptocom({
-    'apiKey': 'Your ApiKey',
-    'secret': 'Your Secret ApiKey',
+    'apiKey': '',
+    'secret': '',
     # 'password': 'YOUR_API_PASSWORD',
     # Additional exchange-specific options if needed
 })
@@ -71,13 +72,17 @@ def execute_trade():
             if current_candle[1] > previous_candle[4]:  # If current candle opens higher than the previous candle's close
                 # Fetch account balance
                 balance = exchange.fetch_balance()
-                available_funds = balance['total']['USDT']  # Assuming your base currency is USDT
+                available_funds = balance['total']['USD']  # Assuming your base currency is USDT
 
-                # Calculate dynamic buy amount based on available funds
-                buy_amount = available_funds * 0.01  # 1% of available funds
+               # Generate random amounts for buy and sell
+                buy_amount = int(random.uniform(1, 100000))  # Random amount between 1 and 100,000 as an integer
+
+                # Place a market buy order with the random buy amount
+                buy_order = exchange.create_market_buy_order(symbol, buy_amount)
+                logger.info(f"Buy order placed for {symbol} at market price: {buy_order}")
 
                 # Generate random sell amounts within a certain range
-                sell_amounts = [np.random.uniform(0.00001, buy_amount) for _ in range(len(sell_prices))]
+                sell_amounts = [np.random.uniform(0.00001, 100000, buy_amount) for _ in range(len(sell_prices))]
 
                 # Place a market buy order with the dynamic buy amount
                 buy_order = exchange.create_market_buy_order(symbol, buy_amount)
@@ -131,5 +136,5 @@ while True:
     except Exception as e:
         logging.info(f"An error occurred: {str(e)}")
 
-    time.sleep(300)  # 5 minutes interval
+    time.sleep(30)  # 5 minutes interval
 
