@@ -74,10 +74,10 @@ def execute_trade():
                 available_funds = balance['total']['USDT']  # Assuming your base currency is USDT
 
                 # Calculate dynamic buy amount based on available funds
-                buy_amount = available_funds * 0.01  # 1% of available funds
+                buy_amount = available_funds * 0.15  # 1% of available funds
 
                 # Generate random sell amounts within a certain range
-                sell_amounts = [np.random.uniform(0.00001, buy_amount) for _ in range(len(sell_prices))]
+                sell_amounts = [np.random.uniform(0.00001, 100000, buy_amount) for _ in range(len(sell_prices))]
 
                 # Place a market buy order with the dynamic buy amount
                 buy_order = exchange.create_market_buy_order(symbol, buy_amount)
