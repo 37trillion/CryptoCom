@@ -26,3 +26,22 @@ def fetch_currencies():
 def fetch_markets():
     markets = exchange.fetch_markets()
     return markets
+
+# Additional functions
+
+def fetch_symbol_info(symbol):
+    symbol_info = exchange.fetch_symbol_info(symbol)
+    return symbol_info
+
+def fetch_trading_limits(symbol):
+    trading_limits = exchange.fetch_trading_limits(symbol)
+    return trading_limits
+
+def fetch_trading_pairs():
+    trading_pairs = exchange.fetch_trading_pairs()
+    return trading_pairs
+
+def fetch_exchange_info():
+    exchange_info = exchange.fetch_exchange_info()
+    return exchange_info
+
